@@ -21,7 +21,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-RESULTS_PATH = Path(__file__).parent.parent / 'results' / 'metrics.csv'
+RESULTS_PATH = Path(__file__).parent.parent / 'results' / 'sort_benchmark_results.csv'
 GRAPHS_PATH  = Path(__file__).parent.parent / 'results'
 
 ALGORITHMS = {
@@ -104,7 +104,7 @@ def plot_results(df: pd.DataFrame):
     GRAPHS_PATH.mkdir(parents=True, exist_ok=True)
     log.info("Generating charts")
 
-    # Chart 1 - runtime vs n for each algorithm on random ordering
+    # Chart 1: runtime vs n for each algorithm on random ordering
     fig, ax = plt.subplots(figsize=(10, 6))
     random_df = df[df['ordering'] == 'random']
     for algo in ALGORITHMS:
@@ -119,7 +119,7 @@ def plot_results(df: pd.DataFrame):
     plt.savefig(GRAPHS_PATH / 'chart1_runtime_vs_n.png')
     log.info("Saved chart1_runtime_vs_n.png")
 
-    # Chart 2 - insertion sort across all 3 orderings
+    # Chart 2: insertion sort across all 3 orderings
     fig, ax = plt.subplots(figsize=(10, 6))
     insertion_df = df[df['algorithm'] == 'insertion_sort']
     for ordering in ['random', 'sorted', 'reversed']:
@@ -133,6 +133,33 @@ def plot_results(df: pd.DataFrame):
     plt.tight_layout()
     plt.savefig(GRAPHS_PATH / 'chart2_insertion_sort_orderings.png')
     log.info("Saved chart2_insertion_sort_orderings.png")
+
+    # Chart 3: numeric vs text column comparison at n=1000
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    numeric_df = df[(df['ordering'] == 'random') & (df['size'] == 1000) & (df['column'].isna())]
+    text_df    = df[(df['ordering'] == 'random') & (df['column'] == 'OP_CARRIER (text)')]
+
+    x = range(len(ALGORITHMS))
+    algo_names = list(ALGORITHMS.keys())
+    width = 0.35
+
+    numeric_times = [numeric_df[numeric_df['algorithm'] == a]['time_seconds'].values[0] for a in algo_names]
+    text_times    = [text_df[text_df['algorithm'] == a]['time_seconds'].values[0] for a in algo_names]
+
+    ax.bar([i - width/2 for i in x], numeric_times, width, label='ARR_DELAY (numeric)')
+    ax.bar([i + width/2 for i in x], text_times,    width, label='OP_CARRIER (text)')
+
+    ax.set_title('Numeric vs Text Column: Runtime at n=1,000 (Random Ordering)')
+    ax.set_xlabel('Algorithm')
+    ax.set_ylabel('Time (seconds)')
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(algo_names)
+    ax.legend()
+    ax.grid(True, axis='y')
+    plt.tight_layout()
+    plt.savefig(GRAPHS_PATH / 'chart3_numeric_vs_text.png')
+    log.info("Saved chart3_numeric_vs_text.png")
 
 
 def format_time(seconds: float) -> str:
